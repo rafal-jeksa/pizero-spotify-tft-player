@@ -1,2 +1,6 @@
-# pizero-spotify-tft-player
-Standalone Spotify Hi-Fi player built on Raspberry Pi Zero W (v1.1) with a TFT display, DAC and rotary encoder. Custom 3D printed case included. | Samodzielny odtwarzacz Spotify na RPi zero w z ekranem i przetwornikiem DAC.
+# 🎵 RPi Zero Spotify Streamer (pizero-spotify-tft-player)
+
+[![pl](https://img.shields.io/badge/lang-pl-red.svg)](README_pl.md)
+*Read this in [Polish](README_pl.md)*
+
+Standalone, network-based Spotify player built on Raspberry Pi Zero W...
