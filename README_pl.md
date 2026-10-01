@@ -3,4 +3,4 @@
 [![en](https://img.shields.io/badge/lang-en-blue.svg)](README.md)
 *Przeczytaj to po [angielsku](README.md)*
 
-Samodzielny, sieciowy odtwarzacz Spotify...
+Samodzielny, sieciowy odtwarzacz Spotify. Test gita
