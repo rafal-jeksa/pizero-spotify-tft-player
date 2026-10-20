@@ -111,120 +111,14 @@ Z uwagi na porzucenie wsparcia dla architektury ARMv6 przez nowsze wydania pakie
 
 ## 🖥️ 5. Skrypt Wyświetlacza i Autoryzacja OAuth (`player.py`)
 
-Utwórz główny skrypt obsługujący ekran w katalogu `/root/player.py`:
-
-```bash
-nano ~/player.py
+1. Pobierz plik `player.py` z tego repozytorium i umieść w katalogu `/root/`.
+2. Otwórz plik `player.py` w edytprze tekstowym i podmień zmienne `CLIENT_ID` oraz `CLIENT_SECRET` na swoje klucze wygenerowane w panelu [Spotify Developer Dashboard](https://developer.spotify.com/dashboard). Pamiętaj, aby w ustawieniach aplikacji na stronie Spotify dodać adres zwrotny `http://127.0.0.1:8888/callback`.
+3. Przeprowadź jednorazową autoryzację uruchamiająć skrypt ręcznie:
 ```
-
-Wklej poniższy kod, podmieniając ciągi `TWÓJ_CLIENT_ID_TUTAJ` oraz `TWÓJ_CLIENT_SECRET_TUTAJ` na klucze wygenerowane w panelu [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) (upewnij się, że w ustawieniach aplikacji dodano adres zwrotny `http://127.0.0.1:8888/callback`):
-
-```python
-import os
-import time
-import requests
-from io import BytesIO
-from PIL import Image, ImageDraw
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-from spotipy.cache_handler import CacheFileHandler
-from luma.core.interface.serial import spi
-from luma.lcd.device import st7789
-
-# ==========================================
-# 1. KONFIGURACJA SPOTIFY API
-# ==========================================
-CLIENT_ID = 'TWÓJ_CLIENT_ID_TUTAJ'
-CLIENT_SECRET = 'TWÓJ_CLIENT_SECRET_TUTAJ'
-REDIRECT_URI = '[http://127.0.0.1:8888/callback](http://127.0.0.1:8888/callback)'
-
-cache_path = os.path.expanduser('~/.spotify_cache')
-cache_handler = CacheFileHandler(cache_path=cache_path)
-
-scope = 'user-read-playback-state'
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
-                                               client_secret=CLIENT_SECRET,
-                                               redirect_uri=REDIRECT_URI,
-                                               scope=scope,
-                                               cache_handler=cache_handler,
-                                               open_browser=False))
-
-# ==========================================
-# 2. KONFIGURACJA EKRANU ST7789V
-# ==========================================
-serial = spi(port=0, device=0, gpio_DC=24, gpio_RST=25)
-# Inicjalizacja sprzętowa w trybie poziomym (320x240) zapobiega zawijaniu pamięci RAM.
-# Pin gpio_LIGHT=23 pełni rolę ślepego wyjścia dla zachowania kompatybilności z rpi-lgpio.
-device = st7789(serial, width=320, height=240, gpio_LIGHT=23)
-
-current_img_url = ""
-cached_cover = None
-
-# ==========================================
-# 3. GŁÓWNA PĘTLA WYŚWIETLANIA
-# ==========================================
-print("Odtwarzacz uruchomiony! Wciśnij Ctrl+C aby zakończyć.")
-try:
-    while True:
-        try:
-            playback = sp.current_playback()
-            
-            if playback and playback.get('is_playing') and playback.get('item'):
-                track = playback['item']
-                
-                img_url = track['album']['images'][0]['url']
-                artist_name = track['artists'][0]['name']
-                track_name = track['name']
-                active_device = playback['device']['name']
-                
-                if img_url != current_img_url:
-                    current_img_url = img_url
-                    response = requests.get(img_url, timeout=5)
-                    cover = Image.open(BytesIO(response.content))
-                    cached_cover = cover.resize((240, 240), Image.Resampling.LANCZOS)
-                
-                # Rysowanie pionowego interfejsu (240x320)
-                display_img = Image.new('RGB', (240, 320), color='black')
-                if cached_cover:
-                    display_img.paste(cached_cover, (0, 0))
-                
-                draw = ImageDraw.Draw(display_img)
-                draw.text((5, 250), f"Wykonawca: {artist_name}", fill="white")
-                draw.text((5, 270), f"Utwor: {track_name}", fill="green")
-                draw.text((5, 295), f"Glosnik: {active_device}", fill="gray")
-                
-                # Obrót obrazu o 90 stopni przed wysłaniem do poziomego bufora sprzętu
-                final_img = display_img.transpose(Image.ROTATE_90)
-                device.display(final_img)
-                
-            else:
-                img = Image.new('RGB', (240, 320), color='black')
-                draw = ImageDraw.Draw(img)
-                draw.text((60, 150), "BRAK ODTWARZANIA", fill="gray")
-                
-                final_img = img.transpose(Image.ROTATE_90)
-                device.display(final_img)
-                current_img_url = ""
-                
-        except Exception:
-            pass
-            
-        time.sleep(3)
-
-except KeyboardInterrupt:
-    print("Zamykanie...")
+source ~/spotify_player_env/bin/activate
+python3 ~/player.py
 ```
-
-### Jednorazowa autoryzacja OAuth
-1. Uruchom skrypt ręcznie z poziomu aktywnego środowiska wirtualnego:
-   ```bash
-   source ~/spotify_player_env/bin/activate
-   python3 ~/player.py
-   ```
-2. Skopiuj wygenerowany w terminalu link autoryzacyjny i otwórz go w przeglądarce na komputerze lub telefonie.
-3. Zatwierdź uprawnienia. Przeglądarka przekieruje Cię na adres `http://127.0.0.1:8888/callback?code=...` i wyświetli komunikat błędu połączenia (**"Nie można otworzyć strony"**). Jest to zachowanie całkowicie prawidłowe.
-4. Skopiuj pełny adres URL z paska przeglądarki, wklej go do konsoli SSH maliny i zatwierdź klawiszem **Enter**.
-5. Token zostanie trwale zapisany w pliku `/root/.spotify_cache`. Zatrzymaj skrypt kombinacją `Ctrl+C`.
+4. Skopiuj wygenerowany link do przeglądarki, zatwierdż uprawnienia. Kiedy przeglądarka zgłosi błąd połączenia (to normalne), skopiuj cały URL z paska i wklej z powrotem do konsoli maliny. Token zostanie trwale zapisany w `~/.spotify_cache`. Przerwij działanie skryptu (`Ctrl+C`).
 
 ---
 
